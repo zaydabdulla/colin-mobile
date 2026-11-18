@@ -372,8 +372,9 @@ export function MobileNavbar() {
               { name: "View All", href: "/collections/all", num: "01" },
               { name: "Best Sellers", href: "/collections/best-sellers", num: "02" },
               { name: "New Arrivals", href: "/collections/new-arrivals", num: "03" },
-              { name: "Login", href: "/login", num: "04" },
-              { name: "About", href: "/about", num: "05" },
+              { name: "Journal", href: "/blog", num: "04" },
+              { name: "Login", href: "/login", num: "05" },
+              { name: "About", href: "/about", num: "06" },
             ].map((link, i) => (
               <motion.div
                 key={link.href}

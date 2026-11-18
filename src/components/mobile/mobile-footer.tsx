@@ -35,6 +35,7 @@ export function MobileFooter() {
     {
       title: "Editorial",
       links: [
+        { name: "The Journal", href: "/blog" },
         { name: "The Lookbook", href: "/" },
         { name: "About Us", href: "/about" },
         { name: "My Account", href: "/profile" },

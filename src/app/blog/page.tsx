@@ -19,8 +19,11 @@ export const metadata: Metadata = {
   },
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function BlogPage() {
-  const blog = await getBlogArticles("news", 20);
+  const blog = await getBlogArticles("journal", 20);
   const articles = blog?.articles || [];
 
   return (
@@ -35,7 +38,7 @@ export default async function BlogPage() {
             The Journal
           </h1>
           <p className="text-xs md:text-sm text-neutral-500 font-sans leading-relaxed tracking-wide">
-            Design narratives, atelier dispatches, and contemporary streetwear culture by Colin Guest.
+            Stories and style guides by Colin Guest.
           </p>
         </div>
 
@@ -96,14 +99,6 @@ export default async function BlogPage() {
                   </Link>
 
                   <div className="p-6 flex flex-col flex-grow">
-                    <div className="flex items-center gap-3 text-[10px] uppercase font-bold tracking-[0.2em] text-neutral-400 mb-3">
-                      {formattedDate && <span>{formattedDate}</span>}
-                      {formattedDate && article.authorV2?.name && <span>•</span>}
-                      {article.authorV2?.name && (
-                        <span>{article.authorV2.name}</span>
-                      )}
-                    </div>
-
                     <h2 className="text-lg md:text-xl font-serif italic text-neutral-900 mb-3 leading-snug group-hover:text-neutral-600 transition-colors">
                       <Link href={`/blog/${article.handle}`}>
                         {article.title}

@@ -485,20 +485,90 @@ export async function getCollection(handle: string) {
   return response.data?.collection;
 }
 
-export async function getBlogArticles(blogHandle: string = "news", first: number = 20) {
+export async function getBlogArticles(blogHandle: string = "journal", first: number = 20) {
   const query = `
-    query getBlogArticles($blogHandle: String!, $first: Int!) {
-      blog(handle: $blogHandle) {
-        id
-        title
-        handle
-        seo {
-          title
-          description
+    query getAllBlogArticles($first: Int!) {
+      blogs(first: 10) {
+        edges {
+          node {
+            id
+            title
+            handle
+            seo {
+              title
+              description
+            }
+            articles(first: $first, sortKey: PUBLISHED_AT, reverse: true) {
+              edges {
+                node {
+                  id
+                  title
+                  handle
+                  excerpt
+                  excerptHtml
+                  content
+                  contentHtml
+                  publishedAt
+                  authorV2 {
+                    name
+                  }
+                  image {
+                    url
+                    altText
+                    width
+                    height
+                  }
+                  seo {
+                    title
+                    description
+                  }
+                  tags
+                }
+              }
+            }
+          }
         }
-        articles(first: $first, sortKey: PUBLISHED_AT, reverse: true) {
-          edges {
-            node {
+      }
+    }
+  `;
+
+  const response = await shopifyFetch({
+    query,
+    variables: { first },
+  });
+
+  const blogs = response.data?.blogs?.edges?.map((e: any) => e.node) || [];
+  if (blogs.length === 0) return null;
+
+  // Flatten articles across all blogs (journal, journal-1, news, etc.)
+  const allArticles: any[] = [];
+  let mainBlog = blogs[0];
+
+  for (const b of blogs) {
+    if (b.handle === blogHandle || b.handle.startsWith("journal")) {
+      mainBlog = b;
+    }
+    const arts = b.articles?.edges?.map((e: any) => ({ ...e.node, blogHandle: b.handle })) || [];
+    allArticles.push(...arts);
+  }
+
+  // Sort all articles by published date descending
+  allArticles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+
+  return {
+    ...mainBlog,
+    articles: allArticles.slice(0, first),
+  };
+}
+
+export async function getBlogArticleByHandle(blogHandle: string = "journal", articleHandle: string) {
+  const query = `
+    query getBlogArticleAcrossBlogs($articleHandle: String!) {
+      blogs(first: 10) {
+        edges {
+          node {
+            handle
+            articleByHandle(handle: $articleHandle) {
               id
               title
               handle
@@ -530,59 +600,20 @@ export async function getBlogArticles(blogHandle: string = "news", first: number
 
   const response = await shopifyFetch({
     query,
-    variables: { blogHandle, first },
+    variables: { articleHandle },
   });
 
-  const blog = response.data?.blog;
-  if (!blog) return null;
-
-  return {
-    ...blog,
-    articles: blog.articles?.edges.map((e: any) => e.node) || [],
-  };
-}
-
-export async function getBlogArticleByHandle(blogHandle: string = "news", articleHandle: string) {
-  const query = `
-    query getBlogArticle($blogHandle: String!, $articleHandle: String!) {
-      blog(handle: $blogHandle) {
-        id
-        title
-        handle
-        articleByHandle(handle: $articleHandle) {
-          id
-          title
-          handle
-          excerpt
-          excerptHtml
-          content
-          contentHtml
-          publishedAt
-          authorV2 {
-            name
-          }
-          image {
-            url
-            altText
-            width
-            height
-          }
-          seo {
-            title
-            description
-          }
-          tags
-        }
-      }
+  const blogs = response.data?.blogs?.edges?.map((e: any) => e.node) || [];
+  for (const b of blogs) {
+    if (b.articleByHandle) {
+      return {
+        ...b.articleByHandle,
+        blogHandle: b.handle,
+      };
     }
-  `;
+  }
 
-  const response = await shopifyFetch({
-    query,
-    variables: { blogHandle, articleHandle },
-  });
-
-  return response.data?.blog?.articleByHandle || null;
+  return null;
 }
 
 

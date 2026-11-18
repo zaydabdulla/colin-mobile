@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { getBlogArticleByHandle, getBlogArticles } from "@/lib/shopify";
 
 interface Props {
@@ -10,7 +11,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { handle } = await params;
-  const article = await getBlogArticleByHandle("news", handle);
+  const article = await getBlogArticleByHandle("journal", handle);
 
   if (!article) {
     return {
@@ -54,9 +55,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function generateStaticParams() {
   try {
-    const blog = await getBlogArticles("news", 50);
+    const blog = await getBlogArticles("journal", 50);
     return (blog?.articles || []).map((article: any) => ({
       handle: article.handle,
     }));
@@ -67,7 +71,7 @@ export async function generateStaticParams() {
 
 export default async function BlogPostPage({ params }: Props) {
   const { handle } = await params;
-  const article = await getBlogArticleByHandle("news", handle);
+  const article = await getBlogArticleByHandle("journal", handle);
 
   if (!article) {
     notFound();
@@ -146,27 +150,22 @@ export default async function BlogPostPage({ params }: Props) {
       />
 
       <article className="min-h-screen bg-white text-black pt-28 md:pt-36 pb-24 px-6 md:px-12">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           {/* Back Navigation */}
-          <div className="mb-10">
+          <div className="mb-14">
             <Link
               href="/blog"
-              className="text-[10px] font-bold uppercase tracking-[0.25em] text-neutral-400 hover:text-black transition-colors inline-flex items-center gap-2"
+              className="group inline-flex items-center gap-2 text-[11px] font-medium tracking-[0.2em] uppercase text-black/40 hover:text-black transition-colors duration-200"
             >
-              <span aria-hidden="true">&larr;</span> Back to Journal
+              <ArrowLeft className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-x-1" strokeWidth={1.5} />
+              <span>Back to Journal</span>
             </Link>
           </div>
 
           {/* Article Header */}
-          <header className="mb-10 text-center space-y-4">
-            <div className="flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-[0.25em] text-neutral-400">
-              {formattedDate && <time dateTime={article.publishedAt}>{formattedDate}</time>}
-              {formattedDate && article.authorV2?.name && <span>•</span>}
-              {article.authorV2?.name && <span>By {article.authorV2.name}</span>}
-            </div>
-
+          <header className="mb-14 text-center max-w-3xl mx-auto space-y-4">
             {/* Exactly one H1 for this page */}
-            <h1 className="text-3xl md:text-5xl font-serif italic text-neutral-900 leading-tight tracking-tight">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-serif italic text-neutral-900 leading-[1.15] tracking-tight">
               {article.title}
             </h1>
 
@@ -186,47 +185,54 @@ export default async function BlogPostPage({ params }: Props) {
 
           {/* Featured Image */}
           {article.image?.url && (
-            <div className="relative aspect-[16/10] md:aspect-[16/9] w-full rounded-2xl overflow-hidden mb-12 bg-neutral-100">
+            <div className="relative aspect-[16/10] md:aspect-[21/9] w-full rounded-2xl overflow-hidden mb-16 bg-neutral-100 shadow-sm">
               <Image
                 src={article.image.url}
                 alt={article.image.altText || `${article.title} - Colin Guest`}
                 fill
                 priority
                 className="object-cover"
-                sizes="(max-width: 768px) 100vw, 800px"
+                sizes="(max-width: 1200px) 100vw, 1100px"
               />
             </div>
           )}
 
-          {/* Article Content */}
+          {/* Article Content - Editorial Luxury Typography */}
           <div
-            className="text-neutral-800 font-sans text-sm md:text-base leading-[1.8] md:leading-[2.0] tracking-wide 
-              [&>p]:mb-6 
-              [&>h2]:text-2xl [&>h2]:md:text-3xl [&>h2]:font-serif [&>h2]:italic [&>h2]:text-neutral-900 [&>h2]:mt-10 [&>h2]:mb-4 
-              [&>h3]:text-xl [&>h3]:font-serif [&>h3]:italic [&>h3]:text-neutral-900 [&>h3]:mt-8 [&>h3]:mb-3 
-              [&>ul]:list-disc [&>ul]:pl-6 [&>ul]:mb-6 [&>ul]:space-y-2
-              [&>ol]:list-decimal [&>ol]:pl-6 [&>ol]:mb-6 [&>ol]:space-y-2
-              [&>blockquote]:border-l-2 [&>blockquote]:border-black [&>blockquote]:pl-6 [&>blockquote]:italic [&>blockquote]:my-8 [&>blockquote]:text-neutral-600
-              [&>img]:rounded-xl [&>img]:my-8 [&>img]:w-full
-              [&>a]:underline [&>a]:underline-offset-4 [&>a]:font-medium hover:[&>a]:opacity-70"
+            className="text-neutral-700 font-sans text-base md:text-lg leading-[2.0] tracking-normal
+              [&_p]:mb-8 
+              [&_h2]:text-2xl [&_h2]:md:text-4xl [&_h2]:font-serif [&_h2]:italic [&_h2]:text-black [&_h2]:tracking-tight [&_h2]:mt-16 [&_h2]:mb-6 
+              [&_h3]:text-xs [&_h3]:md:text-sm [&_h3]:font-bold [&_h3]:uppercase [&_h3]:tracking-[0.25em] [&_h3]:text-black [&_h3]:mt-12 [&_h3]:mb-4 
+              [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-8 [&_ul]:space-y-3
+              [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-8 [&_ol]:space-y-3
+              [&_li]:text-neutral-700 [&_li]:leading-[1.9]
+              [&_blockquote]:border-l-2 [&_blockquote]:border-black/30 [&_blockquote]:pl-6 [&_blockquote]:italic [&_blockquote]:my-12 [&_blockquote]:text-neutral-900 [&_blockquote]:font-serif [&_blockquote]:text-xl
+              [&_img]:rounded-2xl [&_img]:my-12 [&_img]:w-full [&_img]:shadow-sm
+              [&_strong]:font-semibold [&_strong]:text-black
+              [&_b]:font-semibold [&_b]:text-black
+              [&_mark]:bg-neutral-100 [&_mark]:text-black [&_mark]:px-2 [&_mark]:py-0.5 [&_mark]:rounded-sm
+              [&_a]:cursor-pointer [&_a]:text-neutral-500 [&_a]:font-medium [&_a]:underline [&_a]:underline-offset-[5px] [&_a]:decoration-neutral-400/70 [&_a]:decoration-[1.5px] [&_a:hover]:text-black [&_a:hover]:decoration-black [&_a:hover]:font-semibold [&_a]:transition-colors [&_a]:duration-200"
             dangerouslySetInnerHTML={{
               __html: article.contentHtml || article.content || "",
             }}
           />
 
           {/* Footer Navigation */}
-          <div className="mt-16 pt-8 border-t border-neutral-100 flex justify-between items-center">
+          <div className="mt-20 pt-10 border-t border-neutral-100 flex flex-col sm:flex-row justify-between items-center gap-6">
             <Link
               href="/blog"
-              className="text-[10px] font-bold uppercase tracking-[0.25em] text-neutral-400 hover:text-black transition-colors"
+              className="group inline-flex items-center gap-2 text-[11px] font-medium tracking-[0.2em] uppercase text-black/40 hover:text-black transition-colors duration-200"
             >
-              &larr; More Articles
+              <ArrowLeft className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-x-1" strokeWidth={1.5} />
+              <span>More Articles</span>
             </Link>
+
             <Link
               href="/collections/all"
-              className="text-[10px] font-bold uppercase tracking-[0.25em] px-6 py-2.5 bg-black text-white rounded-full hover:bg-neutral-800 transition-colors"
+              className="group inline-flex items-center gap-3 px-8 py-3.5 rounded-full bg-black text-white text-[10px] font-bold uppercase tracking-[0.25em] hover:bg-neutral-800 active:scale-95 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.12)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.18)]"
             >
-              Shop All
+              <span>Explore Collection</span>
+              <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.5} />
             </Link>
           </div>
         </div>

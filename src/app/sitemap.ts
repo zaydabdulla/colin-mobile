@@ -58,7 +58,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Fetch blog articles
   let articleRoutes: any[] = [];
   try {
-    const blog = await getBlogArticles('news', 50);
+    const blog = await getBlogArticles('journal', 50);
     if (blog?.articles) {
       articleRoutes = blog.articles
         .filter((a: any) => a.handle)

@@ -9,6 +9,16 @@ const nextConfig: NextConfig = {
         hostname: 'cdn.shopify.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'review-images.judgeme.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.judgeme.com',
+        pathname: '/**',
+      },
     ],
   },
   turbopack: {
