@@ -42,13 +42,18 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
-        source: '/blogs/news',
+        source: '/blogs/:blogSlug/:handle',
+        destination: '/blog/:handle',
+        permanent: true,
+      },
+      {
+        source: '/blogs/:blogSlug',
         destination: '/blog',
         permanent: true,
       },
       {
-        source: '/blogs/news/:handle',
-        destination: '/blog/:handle',
+        source: '/blogs',
+        destination: '/blog',
         permanent: true,
       },
       {
