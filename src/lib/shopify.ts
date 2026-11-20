@@ -1386,7 +1386,7 @@ export async function createShopifyCheckout(
 
   let response = await shopifyFetch({ query, variables });
 
-  // Fallback: If cartCreate failed because of address format in deliveryAddressPreferences, retry without it
+  // Fallback 1: If cartCreate failed because of address format in deliveryAddressPreferences, retry without it
   if (response.data?.cartCreate?.userErrors?.length > 0 && buyerIdentity.deliveryAddressPreferences) {
     delete buyerIdentity.deliveryAddressPreferences;
     const fallbackVariables = {
@@ -1398,9 +1398,81 @@ export async function createShopifyCheckout(
     response = await shopifyFetch({ query, variables: fallbackVariables });
   }
 
-  if (response.data?.cartCreate?.userErrors?.length > 0) {
-    return { success: false, error: response.data.cartCreate.userErrors[0].message };
+  // Fallback 2: If cartCreate failed because customerAccessToken is expired, invalid, or mismatched
+  let hadInvalidToken = false;
+  const hasCustomerTokenError = response.data?.cartCreate?.userErrors?.some((err: any) => {
+    const msg = (err.message || "").toLowerCase();
+    const field = (err.field || []).join(" ").toLowerCase();
+    return (
+      msg.includes("customer") ||
+      msg.includes("token") ||
+      msg.includes("access token") ||
+      field.includes("customeraccesstoken") ||
+      field.includes("buyeridentity")
+    );
+  });
+
+  if (hasCustomerTokenError && buyerIdentity.customerAccessToken) {
+    hadInvalidToken = true;
+    delete buyerIdentity.customerAccessToken;
+    const fallbackVariables = {
+      input: {
+        lines: lineItems,
+        ...(Object.keys(buyerIdentity).length > 0 ? { buyerIdentity } : {})
+      }
+    };
+    response = await shopifyFetch({ query, variables: fallbackVariables });
   }
+
+  // Fallback 3: If cartCreate STILL failed due to any buyerIdentity issue, fallback to pure product line items
+  if (response.data?.cartCreate?.userErrors?.length > 0 && Object.keys(buyerIdentity).length > 0) {
+    const linesOnlyVariables = {
+      input: {
+        lines: lineItems
+      }
+    };
+    const linesOnlyResponse = await shopifyFetch({ query, variables: linesOnlyVariables });
+    if (linesOnlyResponse.data?.cartCreate?.cart?.checkoutUrl) {
+      response = linesOnlyResponse;
+    }
+  }
+
+  const generatePermalink = () => {
+    try {
+      const permalinkItems = lineItems
+        .map((li: any) => {
+          const id = li.merchandiseId.includes('/') ? li.merchandiseId.split('/').pop() : li.merchandiseId;
+          return `${id}:${li.quantity}`;
+        })
+        .filter(Boolean)
+        .join(',');
+
+      if (!permalinkItems) return null;
+
+      const permalinkUrl = new URL(`https://${domain}/cart/${permalinkItems}`);
+      permalinkUrl.searchParams.set("checkout[country]", "IN");
+      permalinkUrl.searchParams.set("locale", "en-IN");
+      if (email) permalinkUrl.searchParams.set("checkout[email]", email);
+      if (normalizedPhone) {
+        permalinkUrl.searchParams.set("checkout[phone]", normalizedPhone);
+        permalinkUrl.searchParams.set("checkout[shipping_address][phone]", normalizedPhone);
+      }
+      if (shippingAddress) {
+        if (shippingAddress.firstName) permalinkUrl.searchParams.set("checkout[shipping_address][first_name]", shippingAddress.firstName);
+        if (shippingAddress.lastName) permalinkUrl.searchParams.set("checkout[shipping_address][last_name]", shippingAddress.lastName);
+        if (shippingAddress.address1) permalinkUrl.searchParams.set("checkout[shipping_address][address1]", shippingAddress.address1);
+        if (shippingAddress.address2) permalinkUrl.searchParams.set("checkout[shipping_address][address2]", shippingAddress.address2);
+        if (shippingAddress.city) permalinkUrl.searchParams.set("checkout[shipping_address][city]", shippingAddress.city);
+        if (shippingAddress.province) permalinkUrl.searchParams.set("checkout[shipping_address][province]", shippingAddress.province);
+        if (shippingAddress.zip) permalinkUrl.searchParams.set("checkout[shipping_address][zip]", shippingAddress.zip);
+        permalinkUrl.searchParams.set("checkout[shipping_address][country]", "India");
+        permalinkUrl.searchParams.set("checkout[shipping_address][country_code]", "IN");
+      }
+      return permalinkUrl.toString();
+    } catch {
+      return null;
+    }
+  };
 
   const checkoutUrl = response.data?.cartCreate?.cart?.checkoutUrl;
 
@@ -1427,10 +1499,28 @@ export async function createShopifyCheckout(
         url.searchParams.set("checkout[shipping_address][country]", "India");
         url.searchParams.set("checkout[shipping_address][country_code]", "IN");
       }
-      return { success: true, url: url.toString() };
+      return { success: true, url: url.toString(), invalidToken: hadInvalidToken };
     } catch {
-      return { success: true, url: checkoutUrl };
+      return { success: true, url: checkoutUrl, invalidToken: hadInvalidToken };
     }
+  }
+
+  // Safety net: If GraphQL cartCreate failed for any reason, use Shopify Cart Permalink so checkout is never blocked
+  const permalink = generatePermalink();
+  if (permalink) {
+    return {
+      success: true,
+      url: permalink,
+      invalidToken: hadInvalidToken
+    };
+  }
+
+  if (response.data?.cartCreate?.userErrors?.length > 0) {
+    return { 
+      success: false, 
+      error: response.data.cartCreate.userErrors[0].message,
+      invalidToken: hadInvalidToken
+    };
   }
 
   return { success: false, error: "Failed to generate checkout URL." };

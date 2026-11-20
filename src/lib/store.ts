@@ -325,6 +325,9 @@ export const useCartStore = create<CartState>()(
                 }
               });
               return;
+            } else {
+              // Token expired or invalid on Shopify, clear it so checkout won't use it
+              set({ accessToken: null });
             }
           }
 

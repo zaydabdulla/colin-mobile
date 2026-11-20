@@ -234,7 +234,10 @@ export function CartDrawer() {
                             firstName: (primaryAddress as any).firstName || state.user?.firstName || "",
                             lastName: (primaryAddress as any).lastName || state.user?.lastName || ""
                           } : null;
-                          const result = await createShopifyCheckout(items, state.user?.email, state.accessToken, targetAddress);
+                          const result = await createShopifyCheckout(items, state.user?.email, null, targetAddress);
+                          if (result.invalidToken) {
+                            useCartStore.setState({ accessToken: null });
+                          }
                           if (result.success && result.url) {
                             window.location.href = result.url;
                             setTimeout(() => setIsCheckingOut(false), 500);
@@ -426,6 +429,9 @@ export function CartDrawer() {
                               } : null;
 
                               const result = await createShopifyCheckout(items, state.user?.email, state.accessToken, targetAddress);
+                              if (result.invalidToken) {
+                                useCartStore.setState({ accessToken: null });
+                              }
                               if (result.success && result.url) {
                                 window.location.href = result.url;
                                 setTimeout(() => setIsCheckingOut(false), 500);
